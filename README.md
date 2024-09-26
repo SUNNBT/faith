@@ -8,7 +8,7 @@
 
 #### 起源
 NPFaith是2021-11月重点公益项目于2022-07月停止更新，然后被NP其它工具箱替换取代。 
-NPFaithX为NPFaith重置项目，完全重写高达！
+NPFaithX为NPFaith重置项目，完全重写！
 
 #### 涅槃科技
 1.  https://npyyds.top/
