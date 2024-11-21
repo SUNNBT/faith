@@ -14,3 +14,8 @@ NPFaithX为NPFaith重置项目，完全重写！
 1.  https://npyyds.top/
 2.  https://buy.npyyds.top/
 3.  https://pd.qq.com/s/7s4bjpv06
+
+#### 开源来源
+https://npyyds.top/<br>
+https://gitee.com/newNP/SpaceLoader/<br>
+https://github.com/NirvanaTec/SpaceLoader/<br>
