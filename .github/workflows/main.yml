@@ -23,57 +23,46 @@ jobs:
           if (Test-Path "FaithX.vsln") { Write-Host "Found FaithX.vsln" }
         shell: powershell
 
-      - name: Build with vproject.exe if available
+      - name: Build with vproject.exe
         run: |
           $vproject = Get-Command vproject.exe -ErrorAction SilentlyContinue
-          if ($null -ne $vproject) {
-            Write-Host "Found vproject.exe at $($vproject.Path)"
-            & $vproject.Path build "FaithX\\FaithX.vprj"
-            if ($LASTEXITCODE -ne 0) {
-              Write-Host "vproject build failed with exit code $LASTEXITCODE"
-              exit $LASTEXITCODE
-            }
-          } else {
-            Write-Host "vproject.exe not found on PATH. Skipping compile step."
-            Write-Host "::warning::vproject.exe not found, build step skipped. Ensure the runner has the correct tool installed."
-          }
-        shell: powershell
-
-      - name: Prepare artifact package
-        run: |
-          $outputPaths = @(
-            "FaithX\\Release",
-            "FaithX\\Debug",
-            "FaithX\\bin",
-            "FaithX\\build",
-            "FaithX\\dist",
-            "FaithX\\output"
-          )
-          $found = $false
-          foreach ($path in $outputPaths) {
-            if (Test-Path $path) {
-              Write-Host "Found output directory: $path"
-              $found = $true
-            }
-          }
-          if (-not $found) {
-            Write-Host "No build output directories found; packaging source files instead."
-            New-Item -ItemType Directory -Path artifact -Force | Out-Null
-            Copy-Item -Path FaithX -Destination artifact -Recurse -Force
-            Copy-Item -Path FaithX.vsln, FaithX\\FaithX.vprj, README.md -Destination artifact -Force
-          } else {
-            New-Item -ItemType Directory -Path artifact -Force | Out-Null
-            foreach ($path in $outputPaths) {
-              if (Test-Path $path) {
-                Copy-Item -Path $path -Destination artifact -Recurse -Force
+          if ($null -eq $vproject) {
+            $pathsToCheck = @(
+              "$env:ProgramFiles\wutao\bin\vproject.exe",
+              "$env:ProgramFiles(x86)\wutao\bin\vproject.exe",
+              "$env:ProgramFiles\火山软件\bin\vproject.exe"
+            )
+            foreach ($checkPath in $pathsToCheck) {
+              if (Test-Path $checkPath) {
+                $vproject = Get-Item $checkPath
+                break
               }
             }
           }
+
+          if ($null -eq $vproject) {
+            Write-Host "::error::vproject.exe not found on PATH or typical install locations. The runner cannot compile this project without the Wutao/火山 build tool."
+            exit 1
+          }
+
+          Write-Host "Found vproject.exe at $($vproject.Path)"
+          & $vproject.Path build "FaithX\\FaithX.vprj"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host "::error::vproject build failed with exit code $LASTEXITCODE"
+            exit $LASTEXITCODE
+          }
         shell: powershell
 
-      - name: Upload artifact
+      - name: Upload build output artifact
+        if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: FaithX-artifact
-          path: artifact
+          name: FaithX-build-output
+          path: |
+            FaithX\\Release
+            FaithX\\Debug
+            FaithX\\bin
+            FaithX\\build
+            FaithX\\dist
+            FaithX\\output
 
