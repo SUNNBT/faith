@@ -1,0 +1,37 @@
+name: Build FaithX
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Show repository layout
+        run: |
+          Get-ChildItem -Recurse -Force | Select-Object FullName
+        shell: powershell
+
+      - name: Detect project files
+        run: |
+          if (Test-Path "FaithX\\FaithX.vprj") { Write-Host "Found custom FaithX project file: FaithX\\FaithX.vprj" }
+          if (Test-Path "FaithX.vsln") { Write-Host "Found solution file: FaithX.vsln" }
+        shell: powershell
+
+      - name: Build FaithX (placeholder)
+        run: |
+          Write-Host "This repository appears to use a custom Wutao / 火山 project format (FaithX.vprj)."
+          Write-Host "Replace the command below with your actual build tool invocation."
+          Write-Host "Example: & 'C:\\Path\\To\\vproject.exe' build FaithX\\FaithX.vprj"
+          if (-Not (Test-Path "FaithX\\FaithX.vprj")) {
+            throw "Build file not found: FaithX\\FaithX.vprj"
+          }
+        shell: powershell
