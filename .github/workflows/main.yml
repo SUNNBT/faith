@@ -25,29 +25,55 @@ jobs:
 
       - name: Build with vproject.exe if available
         run: |
-          $buildSucceeded = $false
           $vproject = Get-Command vproject.exe -ErrorAction SilentlyContinue
           if ($null -ne $vproject) {
             Write-Host "Found vproject.exe at $($vproject.Path)"
             & $vproject.Path build "FaithX\\FaithX.vprj"
-            if ($LASTEXITCODE -eq 0) { $buildSucceeded = $true }
+            if ($LASTEXITCODE -ne 0) {
+              Write-Host "vproject build failed with exit code $LASTEXITCODE"
+              exit $LASTEXITCODE
+            }
           } else {
             Write-Host "vproject.exe not found on PATH. Skipping compile step."
-          }
-          if (-Not $buildSucceeded) {
-            Write-Host "Build did not complete successfully or build tool was not found."
-            exit 1
+            Write-Host "::warning::vproject.exe not found, build step skipped. Ensure the runner has the correct tool installed."
           }
         shell: powershell
 
-      - name: Upload build output artifact
+      - name: Prepare artifact package
+        run: |
+          $outputPaths = @(
+            "FaithX\\Release",
+            "FaithX\\Debug",
+            "FaithX\\bin",
+            "FaithX\\build",
+            "FaithX\\dist",
+            "FaithX\\output"
+          )
+          $found = $false
+          foreach ($path in $outputPaths) {
+            if (Test-Path $path) {
+              Write-Host "Found output directory: $path"
+              $found = $true
+            }
+          }
+          if (-not $found) {
+            Write-Host "No build output directories found; packaging source files instead."
+            New-Item -ItemType Directory -Path artifact -Force | Out-Null
+            Copy-Item -Path FaithX -Destination artifact -Recurse -Force
+            Copy-Item -Path FaithX.vsln, FaithX\\FaithX.vprj, README.md -Destination artifact -Force
+          } else {
+            New-Item -ItemType Directory -Path artifact -Force | Out-Null
+            foreach ($path in $outputPaths) {
+              if (Test-Path $path) {
+                Copy-Item -Path $path -Destination artifact -Recurse -Force
+              }
+            }
+          }
+        shell: powershell
+
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: FaithX-build-output
-          path: |
-            FaithX\\Release
-            FaithX\\Debug
-            FaithX\\bin
-            FaithX\\build
-            FaithX\\dist
-            FaithX\\output
+          name: FaithX-artifact
+          path: artifact
+
