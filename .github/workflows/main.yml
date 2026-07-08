@@ -15,23 +15,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Show repository layout
+      - name: Inspect repository
         run: |
-          Get-ChildItem -Recurse -Force | Select-Object FullName
+          Write-Host "Repository root: $PWD"
+          Get-ChildItem -Path . -Recurse -Force | ForEach-Object { Write-Host $_.FullName }
+          if (Test-Path "FaithX\\FaithX.vprj") { Write-Host "Found FaithX.vprj" }
+          if (Test-Path "FaithX.vsln") { Write-Host "Found FaithX.vsln" }
         shell: powershell
 
-      - name: Detect project files
+      - name: Build with vproject.exe if available
         run: |
-          if (Test-Path "FaithX\\FaithX.vprj") { Write-Host "Found custom FaithX project file: FaithX\\FaithX.vprj" }
-          if (Test-Path "FaithX.vsln") { Write-Host "Found solution file: FaithX.vsln" }
-        shell: powershell
-
-      - name: Build FaithX (placeholder)
-        run: |
-          Write-Host "This repository appears to use a custom Wutao / 火山 project format (FaithX.vprj)."
-          Write-Host "Replace the command below with your actual build tool invocation."
-          Write-Host "Example: & 'C:\\Path\\To\\vproject.exe' build FaithX\\FaithX.vprj"
-          if (-Not (Test-Path "FaithX\\FaithX.vprj")) {
-            throw "Build file not found: FaithX\\FaithX.vprj"
+          $buildSucceeded = $false
+          $vproject = Get-Command vproject.exe -ErrorAction SilentlyContinue
+          if ($null -ne $vproject) {
+            Write-Host "Found vproject.exe at $($vproject.Path)"
+            & $vproject.Path build "FaithX\\FaithX.vprj"
+            if ($LASTEXITCODE -eq 0) { $buildSucceeded = $true }
+          } else {
+            Write-Host "vproject.exe not found on PATH. Skipping compile step."
+          }
+          if (-Not $buildSucceeded) {
+            Write-Host "Build did not complete successfully or build tool was not found."
+            exit 1
           }
         shell: powershell
+
+      - name: Upload build output artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FaithX-build-output
+          path: |
+            FaithX\\Release
+            FaithX\\Debug
+            FaithX\\bin
+            FaithX\\build
+            FaithX\\dist
+            FaithX\\output
